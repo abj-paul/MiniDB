@@ -8,36 +8,32 @@ import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import constants.constants;
 
-/**
- * Contains the methods for performing CRUD operations on the registry file
- * 'minidb.xml'
- */
 public class RegistryFile extends XMLFiles {
 
     public RegistryFile(String path) {
         super(path);
     }
-
     void createFile() {
-        Element rootElem = doc.createElement("root");
-        Element emptyDb = this.addDbEntry("empty", "true");
-
-        rootElem.appendChild(emptyDb);
-        doc.appendChild(rootElem);
-
-        new DatabaseFile(this.getDatabasePath("empty", true));
+	this.insertBasicRegistryFileSyntax();
         this.updateFile();
 
         System.out.println("Intialized: " + xmlFile.getPath());
     }
 
-    /**
-     * 
-     * @param name     - Name of the database
-     * @param disabled - Always false for user created databases
-     * @return The XML Element which can be appended into the doc
-     * @throws ParserConfigurationException
-     */
+    private void insertBasicRegistryFileSyntax() {
+        Element rootElem = doc.createElement("root");
+        Element emptyDb = this.addDbEntry("empty", "true");
+
+        rootElem.appendChild(emptyDb);
+        this.doc.appendChild(rootElem);
+
+	this.createDefaultEmptyDatabaseFile();
+    }
+
+    private void createDefaultEmptyDatabaseFile() {
+        new DatabaseFile(this.getDatabasePath("empty", true));
+    }
+    
     private Element addDbEntry(String name, String disabled) {
         Document doc = this.doc;
 
@@ -65,12 +61,6 @@ public class RegistryFile extends XMLFiles {
         return databaseElem;
     }
 
-    /**
-     * Method for creating a new database. Which means both creating a entry in the
-     * minidb.xml and A new database-xml file.
-     * 
-     * @param name - The name of the database
-     */
     public void createNewDatabase(String name) {
         try {
             if (!this.isDatabaseExists(name)) {
@@ -83,15 +73,12 @@ public class RegistryFile extends XMLFiles {
             } else {
                 System.out.println("Database already exists");
             }
-
+	    
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * To list all the created databases in the register
-     */
     public void listAllDatabases() {
         NodeList list = this.doc.getElementsByTagName("name");
 
@@ -101,13 +88,7 @@ public class RegistryFile extends XMLFiles {
             System.out.println(i + ". " + name);
         }
     }
-
-    /**
-     * Checks if the database name already exists in the register
-     * 
-     * @param name - The name of the database
-     * @return The index of the database in the register, if not found returns -1
-     */
+    
     public int checkDatabase(String name) {
         int x = -1;
         NodeList list = this.doc.getElementsByTagName("name");
@@ -131,11 +112,6 @@ public class RegistryFile extends XMLFiles {
             return false;
     }
 
-    /**
-     * @param name   - Name of the Database
-     * @param create - True only if you are creating a new database
-     * @return The path of the database
-     */
     public String getDatabasePath(String name, boolean create) {
         if (create) {
             return constants.DB_DIR_PATH + "\\" + name + ".xml";

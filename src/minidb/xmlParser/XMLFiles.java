@@ -11,53 +11,78 @@ import org.xml.sax.SAXException;
 
 import constants.constants;
 
-/**
- * A abstract class with specfic set of methods to avoid repitition of code.
- * @param path
- */
 public abstract class XMLFiles {
     protected File xmlFile;
     protected Document doc;
 
+    public File getFile(){
+	return this.xmlFile;
+    }
+
+    public void setFile(File newFile){
+	this.xmlFile = newFile;
+    }
+
+    public Document getDocument(){
+	return this.doc;
+    }
+
+    public void setDocument(Document doc){
+	this.doc = doc;
+    }
+
     public XMLFiles(String path) {
         try {
-            xmlFile = new File(path);
-            new File(constants.DB_DIR_PATH).mkdir(); // create `db` directory if it doesn't exist
-            boolean NoFileFound = xmlFile.createNewFile();
-            load(NoFileFound);
+	    this.createDirectoryIfNotExists();
+	    this.createAndLoadFile(path);
         } catch (ParserConfigurationException | SAXException | IOException err) {
             System.out.println(err);
             err.printStackTrace();
         }
     }
 
-    private void load(boolean NoFile) throws ParserConfigurationException, SAXException, IOException {
+    private void createAndLoadFile(String path) throws ParserConfigurationException, SAXException, IOException{
+	this.xmlFile = new File(path);
+	boolean NoFileFound = xmlFile.createNewFile();
+	loadFile(NoFileFound);
+    }
+
+    private void createDirectoryIfNotExists(){
+	new File(constants.DB_DIR_PATH).mkdir(); // create `db` directory if it doesn't exist
+    }
+
+    private void loadFile(boolean NoFile) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         if (NoFile) {
-            doc = docBuilder.newDocument();
+            this.doc = docBuilder.newDocument();
             createFile(); // abstract method to create the file
         } else {
-            doc = docBuilder.parse(xmlFile);
-            ;
+            this.doc = docBuilder.parse(xmlFile);
         }
     }
 
     abstract void createFile();
 
-    /**
-     * Call this method to update the XML file.
-     */
+    private Transformer createTransformer() throws TransformerException{
+	Transformer transformer = TransformerSingleton.getTransformer();
+	transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+	transformer.setOutputProperty(OutputKeys.INDENT, "no");
+	transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+
+	return transformer;
+    }
+
+    private void transformDOMtoStream(Transformer transformer) throws TransformerException{
+	DOMSource source = new DOMSource(this.doc);
+	StreamResult result = new StreamResult(this.xmlFile);
+	transformer.transform(source, result);
+    }
+
     protected void updateFile() {
         try {
-            Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-            transformer.setOutputProperty(OutputKeys.INDENT, "no");
-            transformer.setOutputProperty(OutputKeys.METHOD, "xml");
-
-            DOMSource source = new DOMSource(this.doc);
-            StreamResult result = new StreamResult(this.xmlFile);
-            transformer.transform(source, result);
+	    Transformer transformer = this.createTransformer();
+	    this.transformDOMtoStream(transformer);
             print("Updated;");
 
         } catch (TransformerException err) {
